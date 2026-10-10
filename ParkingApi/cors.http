@@ -1,0 +1,11 @@
+### Разрешённый frontend origin — в ответе ожидается Access-Control-Allow-Origin: http://localhost:5173
+OPTIONS https://localhost:7047/api/parking-bookings
+Origin: http://localhost:5173
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: content-type,x-correlation-id
+
+### Посторонний origin — Access-Control-Allow-Origin для него появиться не должен
+OPTIONS https://localhost:7047/api/parking-bookings
+Origin: http://evil.example
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: content-type

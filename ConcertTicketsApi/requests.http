@@ -1,0 +1,67 @@
+@baseUrl = https://localhost:7261
+@pastTicketId = 3
+
+### Списки событий: первая и вторая страницы с устойчивой сортировкой
+GET {{baseUrl}}/api/events?page=1&pageSize=5&status=Scheduled
+
+### Следующая страница через курсор (подставьте StartsAt и Id последней строки прошлого ответа)
+GET {{baseUrl}}/api/events/after?pageSize=5&afterStartsAt=2026-10-11T19:00:00&afterId=1
+
+### Событие загружается с обязательной площадкой (INNER JOIN) и необязательным спонсором (LEFT JOIN)
+GET {{baseUrl}}/api/events/1
+
+### Увидеть SQL проекции без исполнения
+GET {{baseUrl}}/api/events/sql-preview?from=2026-10-10T00:00:00&status=Scheduled
+
+### Плохое чтение: одна загрузка списка и дополнительный SELECT для каждого события
+GET {{baseUrl}}/api/events/n-plus-one
+
+### Исправленное чтение с секторами одним запросом; сравните консольный журнал с предыдущим
+GET {{baseUrl}}/api/events/with-sectors?take=5
+
+### Опыт: изменение AsNoTracking объекта не сохраняется
+GET {{baseUrl}}/api/diagnostics/no-tracking-experiment/1?proposedTitle=Не%20сохранится
+
+### Версия сектора; используйте Version из ответа для последующего PUT
+GET {{baseUrl}}/api/sectors/1
+
+### Для демонстрации конфликта сначала GET /api/sectors/1. Отправьте PUT с его Version, затем повторите PUT, сохранив старый Version: второй ответ будет 409.
+PUT {{baseUrl}}/api/sectors/1
+Content-Type: application/json
+
+{
+  "name": "Партер",
+  "capacity": 20,
+  "version": "ВСТАВЬТЕ_VERSION_ИЗ_GET"
+}
+
+### Продажа: начальное наполнение содержит сектор 1, ценовую категорию 1 и покупателя 3
+POST {{baseUrl}}/api/tickets
+Content-Type: application/json
+
+{
+  "sectorId": 1,
+  "priceCategoryId": 1,
+  "buyerId": 3
+}
+
+### Отчет по событию 1: параметр eventId передается в SQL безопасно
+GET {{baseUrl}}/api/reports/events/1/sector-revenue
+
+### Загрузка уровня ticket -> sector
+GET {{baseUrl}}/api/tickets/1/with-sector
+
+### Полная цепочка ticket -> sector -> event -> venue, включая optional sponsor
+GET {{baseUrl}}/api/tickets/1/details
+
+### Явная дозагрузка коллекции билетов сектора
+GET {{baseUrl}}/api/sectors/1/tickets/explicit
+
+### Возврат билета к прошедшему событию должен вернуть 409 и оставить статус/остаток без изменений
+GET {{baseUrl}}/api/tickets?status=Sold&eventId=45
+
+### При необходимости измените pastTicketId на id билета TCK-SEED-PAST-0001 из ответа выше
+POST {{baseUrl}}/api/tickets/{{pastTicketId}}/refund
+
+### Проверьте после отказа, что билет всё еще Sold
+GET {{baseUrl}}/api/tickets/{{pastTicketId}}/details

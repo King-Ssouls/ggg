@@ -1,0 +1,49 @@
+@baseUrl = https://localhost:7047
+@spotId = 1
+
+### Создать обычное машиноместо. Запомните полученный id.
+POST {{baseUrl}}/api/parking-spots
+Content-Type: application/json
+X-Correlation-ID: 11111111-1111-1111-1111-111111111111
+
+{
+  "number": "P-12",
+  "zone": "A",
+  "isResidentsOnly": false
+}
+
+### Успешная бронь на 60 минут
+POST {{baseUrl}}/api/parking-bookings
+Content-Type: application/json
+
+{
+  "parkingSpotId": {{spotId}},
+  "vehiclePlate": "А123ВС777",
+  "startAt": "2026-10-12T10:00:00",
+  "endAt": "2026-10-12T11:00:00",
+  "hasResidentSubscription": false
+}
+
+### Та же бронь: 409, интервал пересекается с уже созданным
+POST {{baseUrl}}/api/parking-bookings
+Content-Type: application/json
+
+{
+  "parkingSpotId": {{spotId}},
+  "vehiclePlate": "В456ОР799",
+  "startAt": "2026-10-12T10:30:00",
+  "endAt": "2026-10-12T11:30:00",
+  "hasResidentSubscription": false
+}
+
+### Невалидная форма: 400 ValidationProblemDetails
+POST {{baseUrl}}/api/parking-bookings
+Content-Type: application/json
+
+{
+  "parkingSpotId": 0,
+  "vehiclePlate": "bad",
+  "startAt": "2026-10-12T10:00:00",
+  "endAt": "2026-10-12T10:20:00",
+  "hasResidentSubscription": false
+}
