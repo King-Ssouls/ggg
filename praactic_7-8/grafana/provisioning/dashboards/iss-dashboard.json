@@ -1,0 +1,59 @@
+{
+  "id": null,
+  "uid": "iss-tracker",
+  "title": "ISS Tracker",
+  "tags": ["iss", "monitoring"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Частота синхронизаций",
+      "description": "Попытки синхронизации в секунду за последние 5 минут.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "rate(iss_sync_attempts_total[5m])", "legendFormat": "попытки/сек", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "single" } }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Количество ошибок синхронизации",
+      "description": "Общее число окончательно неудачных синхронизаций.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "iss_sync_failures_total", "legendFormat": "ошибки", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "single" } }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Средняя длительность синхронизации",
+      "description": "Среднее время одной синхронизации в секундах.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(iss_sync_duration_seconds_sum[5m]) / clamp_min(rate(iss_sync_duration_seconds_count[5m]), 0.001)",
+          "legendFormat": "секунды",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "single" } }
+    }
+  ]
+}

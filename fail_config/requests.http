@@ -1,0 +1,127 @@
+@baseUrl = http://localhost:5086
+@userToken = REPLACE_WITH_FIRST_USER_TOKEN
+@otherToken = REPLACE_WITH_SECOND_USER_TOKEN
+@agentToken = REPLACE_WITH_AGENT_TOKEN
+@ticketId = 1
+@fileId = 1
+@agentId = 1
+
+### Сначала замени заглушки паролей и не публикуй заполненные токены в Git
+### Для обязательной проверки по заданию выполняй запросы в Swagger
+
+### Настройки без авторизации
+GET {{baseUrl}}/api/config
+
+### Регистрация первого пользователя
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "userName": "user1",
+  "password": "REPLACE_WITH_PASSWORD_1"
+}
+
+### Регистрация второго пользователя для проверки чужого доступа
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "userName": "user2",
+  "password": "REPLACE_WITH_PASSWORD_2"
+}
+
+### Вход первого пользователя, скопируй token в userToken
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "user1",
+  "password": "REPLACE_WITH_PASSWORD_1"
+}
+
+### Вход второго пользователя, скопируй token в otherToken
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "user2",
+  "password": "REPLACE_WITH_PASSWORD_2"
+}
+
+### Вход агента, пароль был введён в setup-secrets.ps1 -WithAgent
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "agent",
+  "password": "REPLACE_WITH_AGENT_PASSWORD"
+}
+
+### Создание заявки, полученный id запиши в ticketId
+POST {{baseUrl}}/api/tickets
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "title": "Не работает вход",
+  "text": "При входе появляется ошибка, прикреплю скриншот"
+}
+
+### Свои заявки
+GET {{baseUrl}}/api/tickets
+Authorization: Bearer {{userToken}}
+
+### Одна заявка
+GET {{baseUrl}}/api/tickets/{{ticketId}}
+Authorization: Bearer {{userToken}}
+
+### Список агентов, настоящий id запиши в agentId
+GET {{baseUrl}}/api/tickets/agents
+Authorization: Bearer {{userToken}}
+
+### Автор назначает агента своей заявке
+PUT {{baseUrl}}/api/tickets/{{ticketId}}/agent
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "agentId": {{agentId}}
+}
+
+### Загрузка PDF, вместо пути sample.pdf укажи существующий файл PDF
+### Для другого типа меняй и filename, и путь к файлу, чтобы расширение соответствовало содержимому
+### Если HTTP-клиент не поддерживает чтение файла через <, используй поле file в Swagger
+### После ответа 201 запиши id файла в fileId
+POST {{baseUrl}}/api/tickets/{{ticketId}}/files
+Authorization: Bearer {{userToken}}
+Content-Type: multipart/form-data; boundary=UploadBoundary
+
+--UploadBoundary
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Type: application/pdf
+
+< ./sample.pdf
+--UploadBoundary--
+
+### Список файлов заявки без физических путей
+GET {{baseUrl}}/api/tickets/{{ticketId}}/files
+Authorization: Bearer {{userToken}}
+
+### Скачивание автором, ожидается 200
+GET {{baseUrl}}/api/files/{{fileId}}
+Authorization: Bearer {{userToken}}
+
+### Скачивание назначенным агентом, ожидается 200
+GET {{baseUrl}}/api/files/{{fileId}}
+Authorization: Bearer {{agentToken}}
+
+### Скачивание чужим пользователем, ожидается 403
+GET {{baseUrl}}/api/files/{{fileId}}
+Authorization: Bearer {{otherToken}}
+
+### Скачивание без токена, ожидается 401
+GET {{baseUrl}}/api/files/{{fileId}}
+
+### Неизвестный файл, ожидается 404
+GET {{baseUrl}}/api/files/999999
+Authorization: Bearer {{userToken}}
