@@ -11,12 +11,14 @@ namespace ParkingApi.Controllers;
 
 [ApiController]
 [Route("api/parking-bookings")]
+// Контроллер отдаёт брони клиенту, а правила создания и изменения поручает сервису
 public sealed class ParkingBookingsController(AppDbContext db, ParkingBookingService bookingService) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ParkingBookingResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ParkingBookingResponse>>> GetAll(CancellationToken cancellationToken)
     {
+        // Include загружает связанное место, чтобы добавить его номер и зону в ответ
         var bookings = await db.ParkingBookings.AsNoTracking()
             .Include(x => x.ParkingSpot)
             .OrderBy(x => x.StartAt)
@@ -45,7 +47,9 @@ public sealed class ParkingBookingsController(AppDbContext db, ParkingBookingSer
         [FromHeader(Name = "X-Correlation-ID")] string? correlationId,
         CancellationToken cancellationToken)
     {
+        // Идентификатор запроса устанавливает CorrelationIdMiddleware
         _ = correlationId;
+        // Сервис проверяет доступ к месту, занятость интервала и сохраняет бронь через EF Core
         var result = await bookingService.CreateAsync(dto, cancellationToken);
         if (result.Failure == BookingFailureKind.BusinessRule)
         {
@@ -67,6 +71,7 @@ public sealed class ParkingBookingsController(AppDbContext db, ParkingBookingSer
         [FromHeader(Name = "X-Correlation-ID")] string? correlationId,
         CancellationToken cancellationToken)
     {
+        // Идентификатор запроса устанавливает CorrelationIdMiddleware
         _ = correlationId;
         var result = await bookingService.UpdateAsync(id, dto, cancellationToken);
         if (result.Failure == BookingFailureKind.NotFound)
@@ -82,6 +87,7 @@ public sealed class ParkingBookingsController(AppDbContext db, ParkingBookingSer
         return Ok(ToResponse(result.Booking!));
     }
 
+    // В ответ добавляются данные места из навигационного свойства ParkingSpot
     private static ParkingBookingResponse ToResponse(ParkingBooking booking) => new(
         booking.Id,
         booking.ParkingSpotId,

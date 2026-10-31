@@ -3,6 +3,7 @@ using ParkingApi.Validation;
 
 namespace ParkingApi.DTOs;
 
+// DTO создания отделяет входные данные API от модели, которая хранится в базе
 public sealed class CreateParkingSpotDto
 {
     [Required(ErrorMessage = "Укажите номер машиноместа.")]
@@ -16,7 +17,7 @@ public sealed class CreateParkingSpotDto
     public bool IsResidentsOnly { get; init; }
 }
 
-// Номер машиноместа после создания неизменяемый: DTO обновления меняет только зону и режим доступа.
+// Номер машиноместа после создания неизменяемый, поэтому обновление меняет только зону и режим доступа
 public sealed class UpdateParkingSpotDto
 {
     [Required(ErrorMessage = "Укажите зону парковки.")]
@@ -26,4 +27,5 @@ public sealed class UpdateParkingSpotDto
     public bool IsResidentsOnly { get; init; }
 }
 
+// Ответ API содержит публичные данные парковочного места
 public sealed record ParkingSpotResponse(int Id, string Number, string Zone, bool IsResidentsOnly);

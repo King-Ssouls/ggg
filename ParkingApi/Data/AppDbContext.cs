@@ -5,11 +5,13 @@ namespace ParkingApi.Data;
 
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
+    // Эти наборы EF Core связывает с таблицами мест и броней в SQLite
     public DbSet<ParkingSpot> ParkingSpots => Set<ParkingSpot>();
     public DbSet<ParkingBooking> ParkingBookings => Set<ParkingBooking>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Здесь заданы ключи, ограничения полей, связь брони с местом и индексы базы
         modelBuilder.Entity<ParkingSpot>(entity =>
         {
             entity.ToTable("ParkingSpots");

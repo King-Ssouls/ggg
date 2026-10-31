@@ -3,6 +3,7 @@ using ParkingApi.DTOs;
 
 namespace ParkingApi.Validation;
 
+// Проверяет входные данные новой брони до передачи бизнес-логике сервиса
 public sealed class CreateParkingBookingValidator : AbstractValidator<CreateParkingBookingDto>
 {
     public CreateParkingBookingValidator()
@@ -33,6 +34,7 @@ public sealed class CreateParkingBookingValidator : AbstractValidator<CreatePark
     }
 }
 
+// Проверяет те же поля, когда клиент изменяет существующую бронь
 public sealed class UpdateParkingBookingValidator : AbstractValidator<UpdateParkingBookingDto>
 {
     public UpdateParkingBookingValidator()

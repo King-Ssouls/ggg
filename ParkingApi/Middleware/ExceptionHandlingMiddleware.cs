@@ -6,6 +6,7 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
 {
     public async Task InvokeAsync(HttpContext context)
     {
+        // Перехватывает необработанные ошибки, записывает подробности в лог и отдаёт клиенту общий ответ 500
         try
         {
             await next(context);
@@ -34,6 +35,7 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
 
             await context.Response.WriteAsJsonAsync(
                 problem,
+                options: null,
                 contentType: "application/problem+json",
                 cancellationToken: context.RequestAborted);
         }

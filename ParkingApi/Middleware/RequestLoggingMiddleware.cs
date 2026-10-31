@@ -6,6 +6,7 @@ public sealed class RequestLoggingMiddleware(RequestDelegate next, ILogger<Reque
 {
     public async Task InvokeAsync(HttpContext context)
     {
+        // Измеряет время обработки запроса и записывает маршрут, статус ответа и длительность
         var timer = Stopwatch.StartNew();
         try
         {

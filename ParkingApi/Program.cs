@@ -9,10 +9,11 @@ using ParkingApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Logging.AddConsole(options => options.IncludeScopes = true);
+// Здесь настраиваются сервисы, которыми пользуются контроллеры и промежуточные обработчики
+builder.Logging.AddSimpleConsole(options => options.IncludeScopes = true);
 builder.Services.AddControllers(options =>
 {
-    // Run FluentValidation before ApiController's automatic ModelState response.
+    // Проверка FluentValidation запускается до автоматического ответа ApiController
     options.Filters.Add<FluentValidationActionFilter>();
 });
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -35,7 +36,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 });
 builder.Services.AddProblemDetails(options =>
 {
-    // One place adds the request id to all ProblemDetails created by ASP.NET Core.
+    // Идентификатор запроса добавляется в стандартные ответы об ошибках
     options.CustomizeProblemDetails = context =>
         context.ProblemDetails.Extensions["correlationId"] = context.HttpContext.GetCorrelationId();
 });
@@ -55,6 +56,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Обработчики связывают запрос с логами, записывают его результат и формируют ответ при сбое
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -69,6 +71,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 
+// При запуске схема SQLite обновляется по миграциям из папки Migrations
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

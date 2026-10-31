@@ -1,5 +1,6 @@
 namespace ParkingApi.Models;
 
+// Сущность брони хранится в ParkingBookings и ссылается на одно парковочное место
 public sealed class ParkingBooking
 {
     public int Id { get; set; }

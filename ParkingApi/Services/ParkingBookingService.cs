@@ -19,10 +19,12 @@ public sealed record BookingOperationResult(ParkingBooking? Booking, BookingFail
     public static BookingOperationResult Missing() => new(null, BookingFailureKind.NotFound, "Бронь не найдена.");
 }
 
+// Сервис применяет правила бронирования и обменивается данными с базой через AppDbContext
 public sealed class ParkingBookingService(AppDbContext db)
 {
     public async Task<BookingOperationResult> CreateAsync(CreateParkingBookingDto dto, CancellationToken cancellationToken)
     {
+        // Перед сохранением проверяются место, право резидента и пересечение интервалов
         var spot = await db.ParkingSpots.SingleOrDefaultAsync(x => x.Id == dto.ParkingSpotId, cancellationToken);
         if (spot is null)
         {
@@ -58,7 +60,7 @@ public sealed class ParkingBookingService(AppDbContext db)
         }
         catch (DbUpdateException)
         {
-            // Covers a foreign-key or other database constraint race without exposing provider details.
+            // Обрабатывает конфликт ограничения базы и не раскрывает клиенту детали SQLite
             return BookingOperationResult.Conflict("Бронь конфликтует с текущими данными парковки.");
         }
     }
@@ -109,6 +111,7 @@ public sealed class ParkingBookingService(AppDbContext db)
         DateTime endAt,
         int? excludedBookingId,
         CancellationToken cancellationToken) => db.ParkingBookings.AnyAsync(booking =>
+            // Два интервала пересекаются, если бронь начинается до конца новой и заканчивается после её начала
             booking.ParkingSpotId == spotId &&
             (excludedBookingId == null || booking.Id != excludedBookingId) &&
             booking.StartAt < endAt &&

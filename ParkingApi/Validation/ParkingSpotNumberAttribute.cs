@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace ParkingApi.Validation;
 
+// Пользовательское правило Data Annotations проверяет формат номера места P-01—P-99
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public sealed class ParkingSpotNumberAttribute : ValidationAttribute
 {
@@ -17,7 +18,7 @@ public sealed class ParkingSpotNumberAttribute : ValidationAttribute
     {
         if (value is null)
         {
-            return ValidationResult.Success; // Пустое значение отдельно проверяет [Required].
+            return ValidationResult.Success; // Пустое значение отдельно проверяет атрибут Required
         }
 
         return value is string number && Pattern.IsMatch(number)

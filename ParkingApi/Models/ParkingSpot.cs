@@ -1,5 +1,6 @@
 namespace ParkingApi.Models;
 
+// Сущность парковочного места хранится в таблице ParkingSpots и связана с его бронями
 public sealed class ParkingSpot
 {
     public int Id { get; set; }

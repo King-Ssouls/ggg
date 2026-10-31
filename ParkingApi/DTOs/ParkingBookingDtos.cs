@@ -1,6 +1,6 @@
 namespace ParkingApi.DTOs;
 
-// Эти DTO намеренно не используют Data Annotations: их правила заданы FluentValidation.
+// Поля запросов проверяются валидаторами FluentValidation перед вызовом контроллера
 public sealed class CreateParkingBookingDto
 {
     public int ParkingSpotId { get; init; }
@@ -10,7 +10,7 @@ public sealed class CreateParkingBookingDto
     public bool HasResidentSubscription { get; init; }
 }
 
-// При изменении брони машиноместо остаётся прежним.
+// При изменении брони машиноместо остаётся прежним
 public sealed class UpdateParkingBookingDto
 {
     public string VehiclePlate { get; init; } = string.Empty;
@@ -19,6 +19,7 @@ public sealed class UpdateParkingBookingDto
     public bool HasResidentSubscription { get; init; }
 }
 
+// Ответ объединяет сведения о брони с номером и зоной связанного машиноместа
 public sealed record ParkingBookingResponse(
     int Id,
     int ParkingSpotId,

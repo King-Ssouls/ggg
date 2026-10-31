@@ -9,8 +9,10 @@ namespace ParkingApi.Controllers;
 
 [ApiController]
 [Route("api/parking-spots")]
+// Контроллер принимает HTTP-запросы о парковочных местах и передаёт их в базу через EF Core
 public sealed class ParkingSpotsController(AppDbContext db, ILogger<ParkingSpotsController> logger) : ControllerBase
 {
+    // Возвращает список мест без отслеживания изменений, так как данные только читаются
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ParkingSpotResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ParkingSpotResponse>>> GetAll(CancellationToken cancellationToken)
@@ -39,7 +41,8 @@ public sealed class ParkingSpotsController(AppDbContext db, ILogger<ParkingSpots
         [FromHeader(Name = "X-Correlation-ID")] string? correlationId,
         CancellationToken cancellationToken)
     {
-        _ = correlationId; // Display this header in Swagger; the middleware owns its value.
+        // Значение заголовка создаёт или принимает CorrelationIdMiddleware
+        _ = correlationId;
         if (await db.ParkingSpots.AnyAsync(x => x.Number == dto.Number, cancellationToken))
         {
             return Conflict(ApiProblemDetails.Create(HttpContext, 409, "Машиноместо уже существует", "Номер места должен быть уникальным."));
@@ -70,6 +73,7 @@ public sealed class ParkingSpotsController(AppDbContext db, ILogger<ParkingSpots
         [FromHeader(Name = "X-Correlation-ID")] string? correlationId,
         CancellationToken cancellationToken)
     {
+        // Значение заголовка создаёт или принимает CorrelationIdMiddleware
         _ = correlationId;
         var spot = await db.ParkingSpots.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (spot is null)
@@ -83,6 +87,7 @@ public sealed class ParkingSpotsController(AppDbContext db, ILogger<ParkingSpots
         return Ok(ToResponse(spot));
     }
 
+    // DTO ответа содержит только поля, которые API показывает клиенту
     private static ParkingSpotResponse ToResponse(ParkingSpot spot) =>
         new(spot.Id, spot.Number, spot.Zone, spot.IsResidentsOnly);
 }
