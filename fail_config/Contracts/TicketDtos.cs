@@ -14,7 +14,7 @@ public sealed class CreateTicketDto
     public string Text { get; init; } = string.Empty;
 }
 
-// Автор выбирает агента из списка сотрудников поддержки
+
 public sealed class AssignAgentDto
 {
     [Range(1, int.MaxValue, ErrorMessage = "Выберите агента поддержки")]

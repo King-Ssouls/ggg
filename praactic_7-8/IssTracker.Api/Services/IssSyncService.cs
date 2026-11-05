@@ -40,30 +40,30 @@ public class IssSyncService
             return new SyncRunResult { Outcome = SyncOutcome.Busy };
         }
 
-        var stopwatch = Stopwatch.StartNew();
+        var timer = Stopwatch.StartNew();
         try
         {
             IssMetrics.SyncAttempts.Inc();
             _state.MarkAttempt(DateTimeOffset.UtcNow);
 
-            var apiData = await _apiClient.GetCurrentPositionAsync(cancellationToken);
-            var capturedAt = DateTimeOffset.FromUnixTimeSeconds((long)apiData.Timestamp).UtcDateTime;
+            var data = await _apiClient.GetCurrentPositionAsync(cancellationToken);
+            var capturedAt = DateTimeOffset.FromUnixTimeSeconds(data.Timestamp).UtcDateTime;
 
             // Один timestamp — одна запись, даже если API вернул тот же ответ повторно.
-            var alreadySaved = await _database.Positions
+            var exists = await _database.Positions
                 .AnyAsync(position => position.CapturedAtUtc == capturedAt, cancellationToken);
 
-            if (!alreadySaved)
+            if (!exists)
             {
                 var position = new IssPosition
                 {
-                    SatelliteId = apiData.Id,
-                    Name = apiData.Name!,
-                    Latitude = apiData.Latitude,
-                    Longitude = apiData.Longitude,
-                    AltitudeKm = apiData.AltitudeKm,
-                    VelocityKph = apiData.VelocityKph,
-                    Visibility = apiData.Visibility ?? "Unknown",
+                    SatelliteId = data.Id,
+                    Name = data.Name ?? "ISS",
+                    Latitude = data.Latitude,
+                    Longitude = data.Longitude,
+                    AltitudeKm = data.AltitudeKm,
+                    VelocityKph = data.VelocityKph,
+                    Visibility = data.Visibility ?? "Unknown",
                     CapturedAtUtc = capturedAt,
                     SavedAtUtc = DateTime.UtcNow
                 };
@@ -75,17 +75,17 @@ public class IssSyncService
             _state.MarkSuccess(DateTimeOffset.UtcNow);
             _logger.LogInformation(
                 "ISS position updated: {Latitude}, {Longitude}; captured at {CapturedAtUtc}; saved new record: {SavedNew}; duration {DurationMs} ms",
-                apiData.Latitude,
-                apiData.Longitude,
+                data.Latitude,
+                data.Longitude,
                 capturedAt,
-                !alreadySaved,
-                stopwatch.ElapsedMilliseconds);
+                !exists,
+                timer.ElapsedMilliseconds);
 
             return new SyncRunResult
             {
                 Outcome = SyncOutcome.Succeeded,
                 CapturedAtUtc = new DateTimeOffset(capturedAt, TimeSpan.Zero),
-                SavedNewPosition = !alreadySaved
+                SavedNewPosition = !exists
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -97,7 +97,7 @@ public class IssSyncService
         {
             _state.MarkFailure(exception.Message);
             IssMetrics.SyncFailures.Inc();
-            _logger.LogError(exception, "ISS synchronization failed after {DurationMs} ms", stopwatch.ElapsedMilliseconds);
+            _logger.LogError(exception, "ISS synchronization failed after {DurationMs} ms", timer.ElapsedMilliseconds);
 
             return new SyncRunResult
             {
@@ -107,8 +107,8 @@ public class IssSyncService
         }
         finally
         {
-            stopwatch.Stop();
-            IssMetrics.SyncDuration.Observe(stopwatch.Elapsed.TotalSeconds);
+            timer.Stop();
+            IssMetrics.SyncDuration.Observe(timer.Elapsed.TotalSeconds);
             _syncLock.Exit();
         }
     }

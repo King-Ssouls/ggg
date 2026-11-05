@@ -27,5 +27,5 @@ public class IssApiResponse
     public string? Visibility { get; set; }
 
     [JsonPropertyName("timestamp")]
-    public double Timestamp { get; set; }
+    public long Timestamp { get; set; }
 }

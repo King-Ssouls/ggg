@@ -1,3 +1,5 @@
+using IssTracker.Api.Models;
+
 namespace IssTracker.Api.Services;
 
 // Хранит короткое состояние синхронизации для status и readiness.

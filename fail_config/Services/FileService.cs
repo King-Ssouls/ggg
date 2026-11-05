@@ -14,18 +14,16 @@ namespace FailConfig.Services;
 public sealed class FileService(AppDbContext db, IOptions<FileUploadOptions> options,
     IWebHostEnvironment environment, ILogger<FileService> logger)
 {
-    private readonly FileUploadOptions settings = options.Value;
-    private readonly string folder = Path.Combine(environment.ContentRootPath, "storage", "uploads");
+    private readonly FileUploadOptions fileOptions = options.Value;
+    private readonly string uploadsPath = Path.Combine(environment.ContentRootPath, "storage", "uploads");
 
     // Сохраняет проверенный файл к своей заявке и возвращает его описание
     public async Task<StoredFileResponse> UploadAsync(int ticketId, IFormFile file,
         ClaimsPrincipal user, CancellationToken cancellationToken)
     {
-        string name = Path.GetFileName(file.FileName.Replace('\\', '/'));
-        string extension = Path.GetExtension(name).ToLowerInvariant();
+        string fileName = Path.GetFileName(file.FileName.Replace('\\', '/'));
+        string extension = Path.GetExtension(fileName).ToLowerInvariant();
         await CheckFileAsync(file, extension, cancellationToken);
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 255 || name.Any(char.IsControl))
-            throw new ApiException(400, "Имя файла должно содержать от 1 до 255 обычных символов");
 
         var ticket = await db.Tickets.FindAsync([ticketId], cancellationToken);
         if (ticket is null)
@@ -37,13 +35,13 @@ public sealed class FileService(AppDbContext db, IOptions<FileUploadOptions> opt
         string safeName = Guid.NewGuid().ToString("N") + extension;
         string relativePath = Path.Combine(now.ToString("yyyy"), now.ToString("MM"),
             now.ToString("dd"), safeName);
-        string path = Path.Combine(folder, relativePath);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        string filePath = Path.Combine(uploadsPath, relativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
 
         var savedFile = new StoredFile
         {
             TicketId = ticketId,
-            OriginalName = name,
+            OriginalName = fileName,
             StoredRelativePath = relativePath,
             ContentType = GetContentType(extension),
             Size = file.Length,
@@ -54,7 +52,7 @@ public sealed class FileService(AppDbContext db, IOptions<FileUploadOptions> opt
         bool fileCreated = false;
         try
         {
-            await using (var output = new FileStream(path, FileMode.CreateNew,
+            await using (var output = new FileStream(filePath, FileMode.CreateNew,
                 FileAccess.Write, FileShare.None, 81920, useAsync: true))
             {
                 fileCreated = true;
@@ -66,7 +64,7 @@ public sealed class FileService(AppDbContext db, IOptions<FileUploadOptions> opt
         catch
         {
             // Если запись в базу не сохранилась, удаляем созданный файл
-            try { if (fileCreated) File.Delete(path); }
+            try { if (fileCreated) File.Delete(filePath); }
             catch (Exception cleanupError)
             {
                 logger.LogError(cleanupError, "Не удалось убрать файл после ошибки сохранения");
@@ -114,28 +112,28 @@ public sealed class FileService(AppDbContext db, IOptions<FileUploadOptions> opt
     {
         if (file.Length == 0)
             throw new ApiException(400, "Нельзя загрузить пустой файл");
-        if (file.Length > settings.MaxSizeBytes)
-            throw new ApiException(400, $"Размер файла превышает лимит {settings.MaxSizeBytes} байт");
-        if (!settings.AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        if (file.Length > fileOptions.MaxSizeBytes)
+            throw new ApiException(400, $"Размер файла превышает лимит {fileOptions.MaxSizeBytes} байт");
+        if (!fileOptions.AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
             throw new ApiException(400, "Это расширение файла не разрешено");
 
-        byte[] header = new byte[4];
+        byte[] firstBytes = new byte[4];
         await using var stream = file.OpenReadStream();
-        int count = 0;
-        while (count < header.Length)
+        int bytesRead = 0;
+        while (bytesRead < firstBytes.Length)
         {
-            int read = await stream.ReadAsync(header.AsMemory(count), cancellationToken);
+            int read = await stream.ReadAsync(firstBytes.AsMemory(bytesRead), cancellationToken);
             if (read == 0) break;
-            count += read;
+            bytesRead += read;
         }
-        bool matches = extension switch
+        bool validSignature = extension switch
         {
-            ".jpg" or ".jpeg" => count >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF,
-            ".png" => count >= 4 && header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47,
-            ".pdf" => count >= 4 && header[0] == 0x25 && header[1] == 0x50 && header[2] == 0x44 && header[3] == 0x46,
+            ".jpg" or ".jpeg" => bytesRead >= 3 && firstBytes[0] == 0xFF && firstBytes[1] == 0xD8 && firstBytes[2] == 0xFF,
+            ".png" => bytesRead >= 4 && firstBytes[0] == 0x89 && firstBytes[1] == 0x50 && firstBytes[2] == 0x4E && firstBytes[3] == 0x47,
+            ".pdf" => bytesRead >= 4 && firstBytes[0] == 0x25 && firstBytes[1] == 0x50 && firstBytes[2] == 0x44 && firstBytes[3] == 0x46,
             _ => false
         };
-        if (!matches)
+        if (!validSignature)
             throw new ApiException(400, "Содержимое файла не совпадает с расширением");
     }
 
@@ -150,8 +148,8 @@ public sealed class FileService(AppDbContext db, IOptions<FileUploadOptions> opt
     // Не позволяет сохранённому пути выйти из папки загрузок
     private string GetFilePath(string relativePath)
     {
-        string root = Path.GetFullPath(folder) + Path.DirectorySeparatorChar;
-        string path = Path.GetFullPath(Path.Combine(folder, relativePath));
+        string root = Path.GetFullPath(uploadsPath) + Path.DirectorySeparatorChar;
+        string path = Path.GetFullPath(Path.Combine(uploadsPath, relativePath));
         if (Path.IsPathRooted(relativePath) || !path.StartsWith(root, StringComparison.Ordinal))
             throw new ApiException(404, "Файл не найден");
         return path;

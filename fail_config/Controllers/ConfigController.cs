@@ -7,8 +7,11 @@ namespace FailConfig.Controllers;
 // Показывает настройки, которые безопасно открыть без токена
 [ApiController]
 [Route("api/config")]
-public sealed class ConfigController(IWebHostEnvironment environment,
-    IOptions<FileUploadOptions> files, IOptions<JwtOptions> jwt) : ControllerBase
+public sealed class ConfigController(
+        IWebHostEnvironment environment,
+        IOptions<FileUploadOptions> files,
+        IOptions<JwtOptions> jwt
+    ) : ControllerBase
 {
     // Возвращает среду и лимиты, но только длину секретного ключа
     [HttpGet]

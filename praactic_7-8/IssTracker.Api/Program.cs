@@ -33,8 +33,8 @@ builder.Services.AddEndpointsApiExplorer();
 // Настраивает структурированные логи в консоль и ежедневные файлы.
 builder.Host.UseSerilog((context, logger) => logger
     .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    .MinimumLevel.Override("Microsoft.Extensions.Http.Resilience", LogEventLevel.Information)
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Error)
+    .MinimumLevel.Override("Polly", LogEventLevel.Error)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .WriteTo.File(
@@ -56,10 +56,10 @@ if (isDevelopment)
     builder.Services.AddTransient<DevelopmentChaosHandler>();
 }
 
-var requestTimeoutSeconds = builder.Configuration.GetValue<int>(
+var timeoutSeconds = builder.Configuration.GetValue<int>(
     $"{IssApiOptions.SectionName}:RequestTimeoutSeconds");
 
-var issClientBuilder = builder.Services.AddHttpClient<IssApiClient, IssApiClient>((services, client) =>
+var clientBuilder = builder.Services.AddHttpClient<IssApiClient, IssApiClient>((services, client) =>
 {
     var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<IssApiOptions>>().Value;
     client.BaseAddress = new Uri(options.BaseUrl);
@@ -68,7 +68,7 @@ var issClientBuilder = builder.Services.AddHttpClient<IssApiClient, IssApiClient
 });
 
 // Polly повторяет временные ошибки, ограничивает время и открывает circuit breaker.
-issClientBuilder.AddStandardResilienceHandler(options =>
+clientBuilder.AddStandardResilienceHandler(options =>
 {
     options.Retry.MaxRetryAttempts = 3;
     options.Retry.Delay = TimeSpan.FromMilliseconds(500);
@@ -83,7 +83,7 @@ issClientBuilder.AddStandardResilienceHandler(options =>
         return ValueTask.CompletedTask;
     };
 
-    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(requestTimeoutSeconds);
+    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
     options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(20);
 
     options.CircuitBreaker.FailureRatio = 0.5;
@@ -95,7 +95,7 @@ issClientBuilder.AddStandardResilienceHandler(options =>
 if (isDevelopment)
 {
     // Симулятор расположен внутри resilience handler, поэтому Polly видит искусственные 503.
-    issClientBuilder.AddHttpMessageHandler<DevelopmentChaosHandler>();
+    clientBuilder.AddHttpMessageHandler<DevelopmentChaosHandler>();
 }
 
 var app = builder.Build();

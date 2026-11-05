@@ -22,8 +22,17 @@ public sealed class FilesController(FileService files) : ControllerBase
 
     // Показывает список вложений одной доступной заявки
     [HttpGet("api/tickets/{ticketId:int}/files")]
-    public async Task<ActionResult<List<StoredFileResponse>>> GetList(int ticketId, CancellationToken cancellationToken)
-        => Ok(await files.GetListAsync(ticketId, User, cancellationToken));
+    public async Task<ActionResult<List<StoredFileResponse>>> GetList
+    (int ticketId,
+        CancellationToken
+        cancellationToken
+    )
+        => Ok(await files.GetListAsync
+        (
+            ticketId,
+            User,
+            cancellationToken)
+        );
 
     // Возвращает поток с исходным именем для скачивания
     [HttpGet("api/files/{id:int}")]

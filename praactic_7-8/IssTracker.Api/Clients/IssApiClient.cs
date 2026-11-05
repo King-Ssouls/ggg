@@ -46,22 +46,10 @@ public class IssApiClient
             throw new IssApiException("Внешний API вернул пустой ответ.");
         }
 
-        // Проверяет, что координаты и время можно безопасно сохранить.
-        var coordinatesAreValid = double.IsFinite(result.Latitude)
-            && result.Latitude >= -90 && result.Latitude <= 90
-            && double.IsFinite(result.Longitude)
-            && result.Longitude >= -180 && result.Longitude <= 180;
-        var otherNumbersAreValid = double.IsFinite(result.AltitudeKm)
-            && double.IsFinite(result.VelocityKph);
-        var timeIsValid = double.IsFinite(result.Timestamp)
-            && result.Timestamp > 0
-            && result.Timestamp <= 253402300799;
-
-        if (result.Id != _options.SatelliteId
-            || string.IsNullOrWhiteSpace(result.Name)
-            || !coordinatesAreValid
-            || !otherNumbersAreValid
-            || !timeIsValid)
+        // Проверяет обязательные диапазоны из задания.
+        if (result.Latitude < -90 || result.Latitude > 90
+            || result.Longitude < -180 || result.Longitude > 180
+            || result.Timestamp <= 0 || result.Timestamp > 253402300799)
         {
             throw new IssApiException("Внешний API вернул данные вне допустимого диапазона.");
         }

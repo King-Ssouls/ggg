@@ -20,14 +20,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddSimpleConsole();
 
-// Настройки читаются один раз через классы и проверяются при запуске
+
 builder.Services.AddOptions<FileUploadOptions>()
     .Bind(builder.Configuration.GetSection("FileUpload"))
-    .Validate(x => x.MaxSizeBytes > 0 && x.MaxSizeBytes <= 104857600,
-        "Лимит файла должен быть от 1 байта до 100 МБ")
-    .Validate(x => x.AllowedExtensions is { Length: > 0 } && x.AllowedExtensions.All(e =>
-        new[] { ".jpg", ".jpeg", ".png", ".pdf" }.Contains(e, StringComparer.OrdinalIgnoreCase)),
-        "Укажите разрешённые расширения jpg, jpeg, png или pdf")
+    .Validate(x => x.MaxSizeBytes > 0, "Лимит файла должен быть больше нуля")
+    .Validate(x => x.AllowedExtensions.Length > 0, "Укажите разрешённые расширения")
     .ValidateOnStart();
 builder.Services.AddOptions<JwtOptions>()
     .Bind(builder.Configuration.GetSection("Jwt"))
@@ -35,8 +32,7 @@ builder.Services.AddOptions<JwtOptions>()
     .Validate(x => !string.IsNullOrWhiteSpace(x.Audience), "Укажите Jwt:Audience")
     .Validate(x => !string.IsNullOrWhiteSpace(x.Secret) && x.Secret.Length >= 32,
         "Jwt:Secret должен содержать не меньше 32 символов — настройте User Secrets или Jwt__Secret")
-    .Validate(x => x.AccessMinutes > 0 && x.AccessMinutes <= 1440,
-        "Срок JWT должен быть от 1 до 1440 минут")
+    .Validate(x => x.AccessMinutes > 0, "Срок JWT должен быть больше нуля")
     .ValidateOnStart();
 
 // HTTP-форма может быть чуть больше файла из-за её служебных полей

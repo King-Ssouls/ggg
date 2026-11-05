@@ -6,12 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FailConfig.Controllers;
 
-// Открытые методы регистрируют пользователя и выдают JWT после проверки пароля
 [ApiController]
 [Route("api/auth")]
 public sealed class AuthController(AuthService authService) : ControllerBase
 {
-    // Регистрирует обычного пользователя и возвращает только его публичные данные
     [HttpPost("register")]
     public async Task<ActionResult<UserResponse>> Register(RegisterDto dto, CancellationToken cancellationToken)
     {
@@ -25,7 +23,6 @@ public sealed class AuthController(AuthService authService) : ControllerBase
 
             return StatusCode(201, new UserResponse(user.Id, user.UserName, user.Role));
         }
-        // Индекс SQLite защищает от одинаковых имён даже при одновременной регистрации
         catch (DbUpdateException error) when (
             error.InnerException is SqliteException { SqliteExtendedErrorCode: 2067 })
         {
@@ -33,7 +30,6 @@ public sealed class AuthController(AuthService authService) : ControllerBase
         }
     }
 
-    // Возвращает токен только при правильной паре имени и пароля
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginDto dto, CancellationToken cancellationToken)
     {
